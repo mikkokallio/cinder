@@ -26,9 +26,10 @@ module.exports = {
     },
     {
       name: 'cinder-dashboard',
-      cwd: '/opt/cinder/dashboard',
+      cwd: '/opt/cinder/dashboard/dist',
       script: 'npx',
-      args: 'vite --host 127.0.0.1 --port 3000',
+      args: 'serve -l 3000 -s --no-clipboard',
+      interpreter: 'none',
       env: {
         NODE_ENV: 'production',
       },
