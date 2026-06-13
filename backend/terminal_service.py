@@ -18,14 +18,19 @@ import termios
 import signal
 import time
 from typing import Optional
+from pathlib import Path
 
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route, WebSocketRoute
 from starlette.websockets import WebSocket, WebSocketDisconnect
+from dotenv import load_dotenv
 import uvicorn
 
 from auth import verify_bearer_token
+
+CINDER_ROOT = Path(os.getenv('CINDER_ROOT', '/opt/cinder'))
+load_dotenv(CINDER_ROOT / '.env')
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 logger = logging.getLogger('cinder-terminal')
