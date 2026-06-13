@@ -16,6 +16,11 @@
         format json
     }
 
+    # Terminal sessions API (on terminal service, port 8002)
+    handle /api/sessions {
+        reverse_proxy 127.0.0.1:8002
+    }
+
     # API routes
     handle /api/* {
         reverse_proxy 127.0.0.1:8000

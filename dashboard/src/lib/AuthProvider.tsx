@@ -44,7 +44,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     msalInstance.initialize().then(async () => {
       const response = await msalInstance.handleRedirectPromise();
       if (response) {
-        setToken(response.accessToken);
+        setToken(response.idToken);
         setUser({
           name: response.account?.name || '',
           email: response.account?.username || '',
@@ -58,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               scopes: loginScopes,
               account: accounts[0],
             });
-            setToken(silentResult.accessToken);
+            setToken(silentResult.idToken);
             setUser({
               name: accounts[0].name || '',
               email: accounts[0].username || '',

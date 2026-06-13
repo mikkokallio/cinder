@@ -59,6 +59,7 @@ export const api = {
   },
   sessions: {
     list: (token: string) =>
-      fetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()) as Promise<TerminalSession[]>,
+      fetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : []) as Promise<TerminalSession[]>,
   },
 };
