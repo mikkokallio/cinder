@@ -16,7 +16,7 @@ function ProtectedRoutes() {
 
   if (!isAuthenticated) {
     return (
-      <div className="relative flex flex-col items-center justify-center min-h-screen gap-8 overflow-hidden">
+      <div className="relative flex flex-col items-center justify-center min-h-screen gap-8">
         {/* Background gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-coal-500 via-coal-300 to-coal-500" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_rgba(255,107,53,0.08)_0%,_transparent_70%)]" />

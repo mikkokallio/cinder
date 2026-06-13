@@ -38,9 +38,9 @@ export default {
         'ember-float': {
           '0%': { transform: 'translate(0, 0) scale(1)', opacity: '0' },
           '10%': { opacity: '0.7' },
-          '30%': { transform: 'translate(var(--drift-1, 6px), -30%) scale(0.9)', opacity: '0.8' },
-          '60%': { transform: 'translate(var(--drift-2, -4px), -60%) scale(0.6)', opacity: '0.5' },
-          '100%': { transform: 'translate(var(--drift-3, 8px), -120%) scale(0.2)', opacity: '0' },
+          '30%': { transform: 'translate(var(--drift-1, 6px), -80px) scale(0.9)', opacity: '0.8' },
+          '60%': { transform: 'translate(var(--drift-2, -4px), -160px) scale(0.6)', opacity: '0.5' },
+          '100%': { transform: 'translate(var(--drift-3, 8px), -260px) scale(0.2)', opacity: '0' },
         },
       },
       boxShadow: {
