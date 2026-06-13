@@ -229,7 +229,8 @@ async def terminal_ws(websocket: WebSocket):
 
     shell_bin = '/bin/bash'
     if shell_type == 'copilot':
-        copilot_bin = '/usr/local/bin/copilot'
+        import shutil
+        copilot_bin = shutil.which('copilot') or '/usr/bin/copilot'
         if os.path.exists(copilot_bin):
             shell_bin = copilot_bin
 
@@ -312,6 +313,29 @@ async def list_sessions(request):
     return JSONResponse(user_sessions)
 
 
+async def terminate_session(request):
+    """Terminate a specific session by name."""
+    auth = request.headers.get('authorization', '')
+    if not auth.startswith('Bearer '):
+        return JSONResponse({'error': 'Unauthorized'}, status_code=401)
+    try:
+        claims = _verify_ws_token(auth[7:])
+    except Exception:
+        return JSONResponse({'error': 'Unauthorized'}, status_code=401)
+
+    user_id = claims.get('oid', claims.get('sub', 'unknown'))
+    session_name = request.path_params['session_name']
+    session_key = f'{user_id}:{session_name}'
+    session = _sessions.get(session_key)
+
+    if not session:
+        return JSONResponse({'error': 'Session not found'}, status_code=404)
+
+    session.close()
+    _sessions.pop(session_key, None)
+    return JSONResponse({'terminated': session_name})
+
+
 async def health(request):
     return JSONResponse({'status': 'ok', 'service': 'cinder-terminal', 'active_sessions': len(_sessions)})
 
@@ -320,6 +344,7 @@ app = Starlette(
     routes=[
         WebSocketRoute('/ws/terminal/{session_name}', terminal_ws),
         Route('/api/sessions', list_sessions),
+        Route('/api/sessions/{session_name}', terminate_session, methods=['DELETE']),
         Route('/health', health),
     ],
 )

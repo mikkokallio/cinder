@@ -17,7 +17,7 @@
     }
 
     # Terminal sessions API (on terminal service, port 8002)
-    handle /api/sessions {
+    handle /api/sessions* {
         reverse_proxy 127.0.0.1:8002
     }
 

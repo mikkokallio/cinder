@@ -42,6 +42,12 @@ export interface TerminalSession {
   attached: boolean;
 }
 
+export interface FileEntry {
+  name: string;
+  type: 'file' | 'dir';
+  size: number | null;
+}
+
 export const api = {
   projects: {
     list: (token: string) => apiFetch('/projects', token) as Promise<Project[]>,
@@ -49,6 +55,17 @@ export const api = {
       apiFetch('/projects', token, { method: 'POST', body: JSON.stringify(data) }),
     delete: (token: string, id: string) =>
       apiFetch(`/projects/${id}`, token, { method: 'DELETE' }),
+  },
+  files: {
+    list: (token: string, projectId: string, path = '.') =>
+      apiFetch(`/projects/${projectId}/files?path=${encodeURIComponent(path)}`, token) as Promise<{ path: string; entries: FileEntry[] }>,
+    read: (token: string, projectId: string, path: string) =>
+      apiFetch(`/projects/${projectId}/file?path=${encodeURIComponent(path)}`, token) as Promise<{ path: string; content: string }>,
+    write: (token: string, projectId: string, path: string, content: string) =>
+      apiFetch(`/projects/${projectId}/file?path=${encodeURIComponent(path)}`, token, {
+        method: 'PUT',
+        body: JSON.stringify({ content }),
+      }),
   },
   ports: {
     list: (token: string) => apiFetch('/ports', token) as Promise<PortEntry[]>,
@@ -61,5 +78,10 @@ export const api = {
     list: (token: string) =>
       fetch('/api/sessions', { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.ok ? r.json() : []) as Promise<TerminalSession[]>,
+    terminate: (token: string, name: string) =>
+      fetch(`/api/sessions/${encodeURIComponent(name)}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(r => r.json()),
   },
 };

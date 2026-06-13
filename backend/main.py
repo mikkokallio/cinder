@@ -8,12 +8,13 @@ from pathlib import Path
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from auth import get_current_user, verify_session_cookie, verify_bearer_token, create_session, SESSION_COOKIE_NAME
 from projects import router as projects_router
+from files import router as files_router
 from port_master import PortMaster
 from dev_server import start_dev_server, stop_dev_server, is_running, get_pid
 
@@ -52,6 +53,7 @@ app.add_middleware(
 )
 
 app.include_router(projects_router, prefix='/api/projects', tags=['projects'])
+app.include_router(files_router, prefix='/api/projects', tags=['files'])
 
 
 @app.get('/health')
@@ -143,3 +145,44 @@ async def project_status(project_id: str, user=Depends(get_current_user)):
             port = entry['port']
             break
     return {'project_id': project_id, 'running': running, 'port': port, 'pid': get_pid(project_id)}
+
+
+# --- Dev server proxy ---
+
+@app.api_route('/app/{project_id}/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+async def proxy_app(project_id: str, path: str, request: Request):
+    """Reverse-proxy requests to the running dev server for a project."""
+    import httpx
+
+    port = None
+    for entry in port_master.get_registry():
+        if entry['project_id'] == project_id:
+            port = entry['port']
+            break
+
+    if port is None or not is_running(project_id):
+        raise HTTPException(status_code=502, detail=f'Dev server not running for {project_id}')
+
+    target_url = f'http://127.0.0.1:{port}/{path}'
+    if request.url.query:
+        target_url += f'?{request.url.query}'
+
+    body = await request.body()
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ('host', 'connection')}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+            )
+        except httpx.ConnectError:
+            raise HTTPException(status_code=502, detail='Dev server not responding')
+
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        headers={k: v for k, v in resp.headers.items() if k.lower() not in ('transfer-encoding', 'connection')},
+    )

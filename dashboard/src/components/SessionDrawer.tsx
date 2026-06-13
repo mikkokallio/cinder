@@ -11,12 +11,26 @@ interface Props {
 export default function SessionDrawer({ open, onClose, onSelectSession }: Props) {
   const { token } = useAuth();
   const [sessions, setSessions] = useState<TerminalSession[]>([]);
+  const [newName, setNewName] = useState('');
 
   useEffect(() => {
     if (open && token) {
       api.sessions.list(token).then(setSessions).catch(() => setSessions([]));
     }
   }, [open, token]);
+
+  async function handleTerminate(name: string) {
+    if (!token) return;
+    await api.sessions.terminate(token, name);
+    setSessions((prev) => prev.filter((s) => s.name !== name));
+  }
+
+  function handleNewSession() {
+    const name = newName.trim() || `session-${Date.now()}`;
+    setNewName('');
+    onSelectSession(name);
+    onClose();
+  }
 
   if (!open) return null;
 
@@ -37,29 +51,60 @@ export default function SessionDrawer({ open, onClose, onSelectSession }: Props)
           </button>
         </header>
 
+        {/* New session */}
+        <div className="px-4 py-3 border-b border-coal-50 flex gap-2">
+          <input
+            type="text"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            placeholder="New session name..."
+            className="flex-1 bg-coal-300 border border-coal-50 rounded px-2 py-1.5 text-sm text-stone-200 placeholder-stone-600 focus:outline-none focus:border-ember-500/50"
+            onKeyDown={(e) => e.key === 'Enter' && handleNewSession()}
+          />
+          <button
+            onClick={handleNewSession}
+            className="px-3 py-1.5 text-sm bg-ember-500/20 text-ember-400 border border-ember-500/30 rounded hover:bg-ember-500/30 transition-colors"
+          >
+            Create
+          </button>
+        </div>
+
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
           {sessions.length === 0 ? (
             <p className="text-stone-500 text-sm text-center mt-8">No active sessions</p>
           ) : (
             sessions.map((session) => (
-              <button
+              <div
                 key={session.name}
-                onClick={() => {
-                  onSelectSession(session.name);
-                  onClose();
-                }}
-                className="w-full glass-panel p-3 text-left hover:shadow-ember-glow transition-all"
+                className="glass-panel p-3 hover:shadow-ember-glow transition-all"
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="font-medium text-sm">{session.name}</span>
-                  <span className={`status-dot ${session.attached ? 'status-dot--running' : 'status-dot--idle'}`} />
+                  <button
+                    onClick={() => { onSelectSession(session.name); onClose(); }}
+                    className="font-medium text-sm text-left hover:text-ember-400 transition-colors"
+                  >
+                    {session.name}
+                  </button>
+                  <div className="flex items-center gap-2">
+                    <span className={`status-dot ${session.attached ? 'status-dot--running' : 'status-dot--idle'}`} />
+                    <button
+                      onClick={() => handleTerminate(session.name)}
+                      className="text-red-500/60 hover:text-red-400 transition-colors"
+                      title="Terminate"
+                    >
+                      <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-stone-500">
                   <span>{session.shell === '/bin/bash' ? 'bash' : 'copilot'}</span>
                   <span>-</span>
                   <span>{formatTimeAgo(session.last_activity)}</span>
                 </div>
-              </button>
+              </div>
             ))
           )}
         </div>

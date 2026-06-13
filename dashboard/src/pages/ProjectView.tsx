@@ -1,6 +1,7 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import Terminal from '../components/Terminal';
+import CodeEditor from '../components/CodeEditor';
 import { useAuth } from '../lib/AuthProvider';
 import { api } from '../lib/api';
 
@@ -185,10 +186,8 @@ export default function ProjectView() {
             cwd={`/opt/cinder/projects/${projectId}`}
           />
         )}
-        {activeTab === 'editor' && (
-          <div className="flex items-center justify-center h-full text-stone-500">
-            Editor (Monaco) -- coming in Phase 2
-          </div>
+        {activeTab === 'editor' && token && projectId && (
+          <CodeEditor token={token} projectId={projectId} />
         )}
         {activeTab === 'preview' && (
           <div className="h-full">
