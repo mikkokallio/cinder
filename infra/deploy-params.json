@@ -1,0 +1,18 @@
+{
+  "parameters": {
+    "entraTenantId": {
+      "value": "822e1525-06a0-418c-9fab-ffc6a51aaac5"
+    },
+    "sshAllowedIp": {
+      "value": "91.152.144.118/32"
+    },
+    "entraClientId": {
+      "value": "64b1054a-2bc0-426c-a928-04aa037497ca"
+    },
+    "sshPublicKey": {
+      "value": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAID6erbKpXUB7tIZlIE/E7LvI7Ar7jr03KcaqxuxJ32CR cinder-vm-deploy"
+    }
+  },
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0"
+}

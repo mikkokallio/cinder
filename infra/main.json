@@ -1,0 +1,268 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.38.33.27573",
+      "templateHash": "641055268935104866"
+    },
+    "description": "Cinder - Persistent Vibe Coding Server"
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "defaultValue": "swedencentral"
+    },
+    "vmSize": {
+      "type": "string",
+      "defaultValue": "Standard_B2s",
+      "metadata": {
+        "description": "VM size: burstable 2 vCPU, 4GB RAM"
+      }
+    },
+    "adminUsername": {
+      "type": "string",
+      "defaultValue": "cinder",
+      "metadata": {
+        "description": "Administrator username"
+      }
+    },
+    "sshPublicKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "SSH public key"
+      }
+    },
+    "entraTenantId": {
+      "type": "string",
+      "metadata": {
+        "description": "Entra ID tenant ID"
+      }
+    },
+    "entraClientId": {
+      "type": "string",
+      "metadata": {
+        "description": "Entra ID client ID for app registration"
+      }
+    },
+    "sshAllowedIp": {
+      "type": "string",
+      "defaultValue": "0.0.0.0/0",
+      "metadata": {
+        "description": "Allowed SSH source IP (your home/office IP)"
+      }
+    },
+    "domainName": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Custom domain for the server"
+      }
+    }
+  },
+  "variables": {
+    "$fxv#0": "I2Nsb3VkLWNvbmZpZw0KDQpwYWNrYWdlX3VwZGF0ZTogdHJ1ZQ0KcGFja2FnZV91cGdyYWRlOiB0cnVlDQoNCnBhY2thZ2VzOg0KICAtIGN1cmwNCiAgLSBnaXQNCiAgLSBidWlsZC1lc3NlbnRpYWwNCiAgLSBweXRob24zDQogIC0gcHl0aG9uMy1waXANCiAgLSBweXRob24zLXZlbnYNCiAgLSBmYWlsMmJhbg0KICAtIHVmdw0KICAtIGpxDQoNCndyaXRlX2ZpbGVzOg0KICAtIHBhdGg6IC9ldGMvZmFpbDJiYW4vamFpbC5sb2NhbA0KICAgIGNvbnRlbnQ6IHwNCiAgICAgIFtzc2hkXQ0KICAgICAgZW5hYmxlZCA9IHRydWUNCiAgICAgIHBvcnQgPSBzc2gNCiAgICAgIGZpbHRlciA9IHNzaGQNCiAgICAgIGxvZ3BhdGggPSAvdmFyL2xvZy9hdXRoLmxvZw0KICAgICAgbWF4cmV0cnkgPSAzDQogICAgICBiYW50aW1lID0gMzYwMA0KDQogIC0gcGF0aDogL29wdC9jaW5kZXIvLmVudi50ZW1wbGF0ZQ0KICAgIGNvbnRlbnQ6IHwNCiAgICAgIEVOVFJBX1RFTkFOVF9JRD0NCiAgICAgIEVOVFJBX0NMSUVOVF9JRD0NCiAgICAgIENJTkRFUl9ET01BSU49DQogICAgICBDSU5ERVJfUk9PVD0vb3B0L2NpbmRlcg0KICAgICAgR0lUSFVCX1RPS0VOPQ0KDQpydW5jbWQ6DQogICMgTm9kZS5qcyAyMCBMVFMNCiAgLSBjdXJsIC1mc1NMIGh0dHBzOi8vZGViLm5vZGVzb3VyY2UuY29tL3NldHVwXzIwLnggfCBiYXNoIC0NCiAgLSBhcHQtZ2V0IGluc3RhbGwgLXkgbm9kZWpzDQoNCiAgIyBQTTINCiAgLSBucG0gaW5zdGFsbCAtZyBwbTINCg0KICAjIENhZGR5DQogIC0gYXB0LWdldCBpbnN0YWxsIC15IGRlYmlhbi1rZXlyaW5nIGRlYmlhbi1hcmNoaXZlLWtleXJpbmcgYXB0LXRyYW5zcG9ydC1odHRwcw0KICAtIGN1cmwgLTFzTGYgJ2h0dHBzOi8vZGwuY2xvdWRzbWl0aC5pby9wdWJsaWMvY2FkZHkvc3RhYmxlL2dwZy5rZXknIHwgZ3BnIC0tZGVhcm1vciAtbyAvdXNyL3NoYXJlL2tleXJpbmdzL2NhZGR5LXN0YWJsZS1hcmNoaXZlLWtleXJpbmcuZ3BnDQogIC0gY3VybCAtMXNMZiAnaHR0cHM6Ly9kbC5jbG91ZHNtaXRoLmlvL3B1YmxpYy9jYWRkeS9zdGFibGUvZGViaWFuLmRlYi50eHQnIHwgdGVlIC9ldGMvYXB0L3NvdXJjZXMubGlzdC5kL2NhZGR5LXN0YWJsZS5saXN0DQogIC0gYXB0LWdldCB1cGRhdGUNCiAgLSBhcHQtZ2V0IGluc3RhbGwgLXkgY2FkZHkNCg0KICAjIFB5dGhvbiB2ZW52IGZvciBiYWNrZW5kDQogIC0gcHl0aG9uMyAtbSB2ZW52IC9vcHQvY2luZGVyLy52ZW52DQogIC0gL29wdC9jaW5kZXIvLnZlbnYvYmluL3BpcCBpbnN0YWxsIC0tdXBncmFkZSBwaXANCg0KICAjIEdpdEh1YiBDb3BpbG90IENMSQ0KICAtIG5wbSBpbnN0YWxsIC1nIEBnaXRodWJuZXh0L2dpdGh1Yi1jb3BpbG90LWNsaSB8fCB0cnVlDQoNCiAgIyBGaXJld2FsbCAoVUZXIGFzIHNlY29uZGFyeSBsYXllciBiZWhpbmQgTlNHKQ0KICAtIHVmdyBkZWZhdWx0IGRlbnkgaW5jb21pbmcNCiAgLSB1ZncgZGVmYXVsdCBhbGxvdyBvdXRnb2luZw0KICAtIHVmdyBhbGxvdyAyMi90Y3ANCiAgLSB1ZncgYWxsb3cgODAvdGNwDQogIC0gdWZ3IGFsbG93IDQ0My90Y3ANCiAgLSB1ZncgLS1mb3JjZSBlbmFibGUNCg0KICAjIFN0YXJ0IGZhaWwyYmFuDQogIC0gc3lzdGVtY3RsIGVuYWJsZSBmYWlsMmJhbg0KICAtIHN5c3RlbWN0bCBzdGFydCBmYWlsMmJhbg0KDQogICMgQ3JlYXRlIHByb2plY3QgZGlyZWN0b3J5DQogIC0gbWtkaXIgLXAgL29wdC9jaW5kZXIvcHJvamVjdHMNCiAgLSBjaG93biAtUiBjaW5kZXI6Y2luZGVyIC9vcHQvY2luZGVyDQoNCiAgIyBMb2cgY29tcGxldGlvbg0KICAtIGVjaG8gIkNpbmRlciBjbG91ZC1pbml0IGNvbXBsZXRlIGF0ICQoZGF0ZSkiID4+IC92YXIvbG9nL2NpbmRlci1pbml0LmxvZw0K"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2024-01-01",
+      "name": "cinder-nsg",
+      "location": "[parameters('location')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "AllowHTTPS",
+            "properties": {
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "443",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowHTTP",
+            "properties": {
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "80",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 101,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowSSH",
+            "properties": {
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "[parameters('sshAllowedIp')]",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 110,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "DenyAllInbound",
+            "properties": {
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 4096,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2024-01-01",
+      "name": "cinder-vnet",
+      "location": "[parameters('location')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "10.1.0.0/16"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "default",
+            "properties": {
+              "addressPrefix": "10.1.0.0/24",
+              "networkSecurityGroup": {
+                "id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'cinder-nsg')]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkSecurityGroups', 'cinder-nsg')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2024-01-01",
+      "name": "cinder-pip",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard"
+      },
+      "properties": {
+        "publicIPAllocationMethod": "Static",
+        "dnsSettings": {
+          "domainNameLabel": "[format('cinder-{0}', uniqueString(resourceGroup().id))]"
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2024-01-01",
+      "name": "cinder-nic",
+      "location": "[parameters('location')]",
+      "properties": {
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "subnet": {
+                "id": "[format('{0}/subnets/default', resourceId('Microsoft.Network/virtualNetworks', 'cinder-vnet'))]"
+              },
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', 'cinder-pip')]"
+              }
+            }
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/publicIPAddresses', 'cinder-pip')]",
+        "[resourceId('Microsoft.Network/virtualNetworks', 'cinder-vnet')]"
+      ]
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-03-01",
+      "name": "cinder-vm",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('vmSize')]"
+        },
+        "osProfile": {
+          "computerName": "cinder",
+          "adminUsername": "[parameters('adminUsername')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "[format('/home/{0}/.ssh/authorized_keys', parameters('adminUsername'))]",
+                  "keyData": "[parameters('sshPublicKey')]"
+                }
+              ]
+            }
+          },
+          "customData": "[variables('$fxv#0')]"
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', 'cinder-nic')]"
+            }
+          ]
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "ubuntu-24_04-lts",
+            "sku": "server",
+            "version": "latest"
+          },
+          "osDisk": {
+            "createOption": "FromImage",
+            "managedDisk": {
+              "storageAccountType": "StandardSSD_LRS"
+            },
+            "diskSizeGB": 64
+          }
+        }
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/networkInterfaces', 'cinder-nic')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "vmPublicIp": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', 'cinder-pip'), '2024-01-01').ipAddress]"
+    },
+    "vmFqdn": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Network/publicIPAddresses', 'cinder-pip'), '2024-01-01').dnsSettings.fqdn]"
+    },
+    "vmPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Compute/virtualMachines', 'cinder-vm'), '2024-03-01', 'full').identity.principalId]"
+    }
+  }
+}
