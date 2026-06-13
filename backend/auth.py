@@ -64,10 +64,6 @@ async def verify_bearer_token(authorization: Optional[str] = Header(None)) -> Di
 
 async def get_current_user(authorization: Optional[str] = Header(None)) -> Dict[str, Any]:
     """Dependency: extract current user from bearer token."""
-    # Temporary test bypass: if CINDER_TEST_SECRET is set and token matches, skip Entra validation
-    test_secret = os.getenv('CINDER_TEST_SECRET')
-    if test_secret and authorization and authorization == f'Bearer {test_secret}':
-        return {'preferred_username': 'test@cinder.dev', 'name': 'Test User', 'oid': 'test-oid'}
     return await verify_bearer_token(authorization)
 
 
