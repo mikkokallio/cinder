@@ -31,7 +31,7 @@ write_files:
       ENTRA_CLIENT_ID=
       CINDER_DOMAIN=
       CINDER_ROOT=/opt/cinder
-      GITHUB_TOKEN=
+      COPILOT_GITHUB_TOKEN=
 
 runcmd:
   # Node.js 20 LTS
@@ -52,8 +52,8 @@ runcmd:
   - python3 -m venv /opt/cinder/.venv
   - /opt/cinder/.venv/bin/pip install --upgrade pip
 
-  # GitHub Copilot CLI
-  - npm install -g @githubnext/github-copilot-cli || true
+  # GitHub Copilot CLI (coding agent)
+  - npm install -g @github/copilot
 
   # Firewall (UFW as secondary layer behind NSG)
   - ufw default deny incoming

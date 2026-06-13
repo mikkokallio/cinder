@@ -86,10 +86,11 @@ class PtySession:
                 'PATH': os.environ.get('PATH', '/usr/local/bin:/usr/bin:/bin'),
             }
             # Inherit GitHub tokens for Copilot CLI
-            for key in ('GITHUB_TOKEN', 'COPILOT_GITHUB_TOKEN'):
-                val = os.environ.get(key)
-                if val:
-                    env[key] = val
+            copilot_token = os.environ.get('COPILOT_GITHUB_TOKEN', '')
+            if copilot_token:
+                env['COPILOT_GITHUB_TOKEN'] = copilot_token
+                env['GITHUB_TOKEN'] = copilot_token
+                env['GH_TOKEN'] = copilot_token
             os.execve(self.shell, [self.shell], env)
         else:
             self.master_fd = fd
