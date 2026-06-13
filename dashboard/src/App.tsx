@@ -23,22 +23,32 @@ function ProtectedRoutes() {
 
         {/* Login card */}
         <div className="relative z-10 flex flex-col items-center gap-8 p-10 glass-panel ember-border max-w-sm w-full mx-4">
-          {/* Rising ember particles */}
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="absolute w-1 h-1 rounded-full bg-ember-500/60 animate-ember-float"
-              style={{
-                left: `${15 + Math.random() * 70}%`,
-                bottom: `${-5 + Math.random() * 10}%`,
-                animationDuration: `${2 + Math.random() * 2}s`,
-                animationDelay: `${Math.random() * 3}s`,
-                animationIterationCount: 'infinite',
-                width: `${2 + Math.random() * 3}px`,
-                height: `${2 + Math.random() * 3}px`,
-              }}
-            />
-          ))}
+          {/* Rising ember particles from button */}
+          {Array.from({ length: 14 }).map((_, i) => {
+            const drift1 = (Math.random() - 0.5) * 20;
+            const drift2 = (Math.random() - 0.5) * 24;
+            const drift3 = (Math.random() - 0.5) * 16;
+            const duration = 3.5 + Math.random() * 3;
+            const size = 2 + Math.random() * 2.5;
+            return (
+              <div
+                key={i}
+                className="absolute rounded-full bg-ember-500/70 animate-ember-float"
+                style={{
+                  left: `${25 + Math.random() * 50}%`,
+                  bottom: '28%',
+                  '--drift-1': `${drift1}px`,
+                  '--drift-2': `${drift2}px`,
+                  '--drift-3': `${drift3}px`,
+                  '--ember-duration': `${duration}s`,
+                  animationDelay: `${Math.random() * duration}s`,
+                  width: `${size}px`,
+                  height: `${size}px`,
+                  filter: `blur(${Math.random() < 0.3 ? 1 : 0}px)`,
+                } as React.CSSProperties}
+              />
+            );
+          })}
 
           {/* Cinder flame icon */}
           <div className="relative">
