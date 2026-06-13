@@ -36,13 +36,32 @@ export default function ProjectView() {
     if (!token || !projectId) return;
     setStarting(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/start`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+      // Allocate a port first
+      const portRes = await api.ports.allocate(token, projectId);
+      const port = portRes.port;
+      setServerPort(port);
+
+      // Spawn autonomous copilot session to detect and start the dev server
+      await api.sessions.auto(token, {
+        prompt: `Look at this project directory. Detect what dev server(s) it has (check package.json scripts, Makefile, Procfile, docker-compose, etc). Install dependencies if needed (npm install, pip install, etc). Then start the dev server, making sure it listens on port ${port}. Pass PORT=${port} as an env var or use the appropriate flag/config. If there are multiple servers, start the primary/frontend one. Do not ask any questions, just do it.`,
+        path: `/opt/cinder/projects/${projectId}`,
+        session_name: `start-${projectId}`,
       });
-      const data = await res.json();
-      setServerRunning(true);
-      setServerPort(data.port);
+      // Switch to terminal to watch the session
+      setActiveTab('terminal');
+      // Poll for server status
+      const poll = setInterval(async () => {
+        const r = await fetch(`/api/projects/${projectId}/status`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await r.json();
+        if (data.running) {
+          setServerRunning(true);
+          setServerPort(data.port);
+          clearInterval(poll);
+        }
+      }, 3000);
+      setTimeout(() => clearInterval(poll), 60000);
     } catch (e) {
       console.error(e);
     }

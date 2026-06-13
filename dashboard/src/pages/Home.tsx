@@ -98,6 +98,7 @@ export default function Home() {
                 key={project.id}
                 project={project}
                 onClick={() => navigate(`/project/${project.id}`)}
+                onUpdate={() => { if (token) api.projects.list(token).then(setProjects); }}
               />
             ))}
           </div>

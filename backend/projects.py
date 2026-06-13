@@ -25,7 +25,7 @@ class ProjectCreate(BaseModel):
     id: str
     name: str
     repo: Optional[str] = None
-    dev_command: str = 'npm run dev'
+    dev_command: str = ''
     preferred_port: Optional[int] = None
     icon: str = 'folder'
 
@@ -35,11 +35,12 @@ class ProjectInfo(BaseModel):
     name: str
     path: str
     repo: Optional[str] = None
-    dev_command: str
+    dev_command: str = ''
     preferred_port: Optional[int] = None
     icon: str
     running: bool = False
     port: Optional[int] = None
+    summary: Optional[dict] = None
 
 
 def _load_projects() -> list[dict]:
@@ -98,3 +99,67 @@ async def unregister_project(project_id: str, user=Depends(get_current_user)):
     projects = [p for p in projects if p['id'] != project_id]
     _save_projects(projects)
     return {'deleted': project_id}
+
+
+@router.post('/{project_id}/summarize')
+async def summarize_project(project_id: str, user=Depends(get_current_user)):
+    """Use GHCP CLI to generate a brief summary of the project."""
+    import shutil
+    import asyncio
+
+    projects = _load_projects()
+    project = next((p for p in projects if p['id'] == project_id), None)
+    if not project:
+        raise HTTPException(status_code=404, detail='Project not found')
+
+    project_path = project['path']
+    if not Path(project_path).exists():
+        raise HTTPException(status_code=404, detail='Project path not found')
+
+    copilot_bin = shutil.which('copilot') or '/usr/bin/copilot'
+    if not os.path.exists(copilot_bin):
+        raise HTTPException(status_code=500, detail='copilot binary not found')
+
+    prompt = (
+        'Analyze this project directory. Respond with ONLY a JSON object (no markdown, no explanation) '
+        'containing: {"summary": "<1-2 sentence description>", "tech": ["<tech1>", "<tech2>", ...], '
+        '"files": <number of source files>, "lines": <rough total lines of code>}. '
+        'Keep tech list to max 5 items. Be concise.'
+    )
+
+    env = {**os.environ}
+    copilot_token = os.environ.get('COPILOT_GITHUB_TOKEN', '')
+    if copilot_token:
+        env['COPILOT_GITHUB_TOKEN'] = copilot_token
+        env['GITHUB_TOKEN'] = copilot_token
+        env['GH_TOKEN'] = copilot_token
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            copilot_bin, '-p', prompt, '--allow-all-tools', '--mode', 'autopilot', '--no-ask-user',
+            cwd=project_path,
+            env=env,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=60)
+        output = stdout.decode('utf-8', errors='replace').strip()
+
+        # Try to extract JSON from output
+        import re
+        json_match = re.search(r'\{[^{}]*\}', output)
+        if json_match:
+            summary_data = json.loads(json_match.group())
+        else:
+            summary_data = {'summary': output[:200], 'tech': [], 'files': 0, 'lines': 0}
+
+        # Store in project entry
+        project['summary'] = summary_data
+        _save_projects(projects)
+        return summary_data
+
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail='Summarization timed out')
+    except Exception as e:
+        logger.error(f'Summarize failed for {project_id}: {e}')
+        raise HTTPException(status_code=500, detail=str(e))

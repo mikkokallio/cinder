@@ -13,7 +13,6 @@ export default function NewProjectDialog({ open, onClose, onCreated }: Props) {
   const [id, setId] = useState('');
   const [name, setName] = useState('');
   const [repo, setRepo] = useState('');
-  const [devCommand, setDevCommand] = useState('npm run dev');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,12 +29,10 @@ export default function NewProjectDialog({ open, onClose, onCreated }: Props) {
         id: id.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-'),
         name: name.trim(),
         repo: repo.trim() || null,
-        dev_command: devCommand.trim() || 'npm run dev',
       });
       setId('');
       setName('');
       setRepo('');
-      setDevCommand('npm run dev');
       onCreated();
       onClose();
     } catch (err: any) {
@@ -98,16 +95,6 @@ export default function NewProjectDialog({ open, onClose, onCreated }: Props) {
               className="w-full px-3 py-2 bg-coal-300 border border-coal-50 rounded-lg text-stone-100 text-sm placeholder:text-stone-600 focus:outline-none focus:border-ember-500/50"
             />
             <p className="text-xs text-stone-500 mt-1">Leave empty to start from scratch</p>
-          </div>
-
-          <div>
-            <label className="block text-sm text-stone-400 mb-1">Dev command</label>
-            <input
-              type="text"
-              value={devCommand}
-              onChange={(e) => setDevCommand(e.target.value)}
-              className="w-full px-3 py-2 bg-coal-300 border border-coal-50 rounded-lg text-stone-100 font-mono text-sm placeholder:text-stone-600 focus:outline-none focus:border-ember-500/50"
-            />
           </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}

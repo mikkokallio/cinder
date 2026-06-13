@@ -6,14 +6,16 @@ import { useNavigate } from 'react-router-dom';
 interface Props {
   project: Project;
   onClick: () => void;
+  onUpdate?: () => void;
 }
 
-export default function ProjectCard({ project, onClick }: Props) {
+export default function ProjectCard({ project, onClick, onUpdate }: Props) {
   const { token } = useAuth();
   const navigate = useNavigate();
   const [showInput, setShowInput] = useState(false);
   const [prompt, setPrompt] = useState('');
   const [sending, setSending] = useState(false);
+  const [summarizing, setSummarizing] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,7 +29,6 @@ export default function ProjectCard({ project, onClick }: Props) {
       });
       setPrompt('');
       setShowInput(false);
-      // Navigate to project terminal where user can watch
       navigate(`/project/${project.id}?session=${res.session_name}`);
     } catch (err) {
       console.error('Auto session failed:', err);
@@ -36,10 +37,24 @@ export default function ProjectCard({ project, onClick }: Props) {
     }
   }
 
+  async function handleSummarize(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (!token) return;
+    setSummarizing(true);
+    try {
+      await api.projects.summarize(token, project.id);
+      onUpdate?.();
+    } catch (err) {
+      console.error('Summarize failed:', err);
+    } finally {
+      setSummarizing(false);
+    }
+  }
+
   return (
     <div className="glass-panel p-5 hover:shadow-ember-glow transition-all duration-200 group relative">
       <button onClick={onClick} className="w-full text-left">
-        <div className="flex items-start justify-between mb-3">
+        <div className="flex items-start justify-between mb-2">
           <div className="w-10 h-10 rounded-lg bg-coal-300 flex items-center justify-center group-hover:bg-coal-50 transition-colors">
             <ProjectIcon name={project.icon} />
           </div>
@@ -51,11 +66,48 @@ export default function ProjectCard({ project, onClick }: Props) {
           </div>
         </div>
         <h3 className="font-medium text-stone-100 mb-1">{project.name}</h3>
-        <p className="text-sm text-stone-500 truncate">{project.dev_command}</p>
+
+        {/* Summary section */}
+        {project.summary ? (
+          <div className="mb-2">
+            <p className="text-xs text-stone-400 line-clamp-2 mb-1.5">{project.summary.summary}</p>
+            <div className="flex flex-wrap gap-1">
+              {project.summary.tech.map((t) => (
+                <span key={t} className="text-[10px] px-1.5 py-0.5 bg-coal-300 text-stone-500 rounded">
+                  {t}
+                </span>
+              ))}
+            </div>
+            {(project.summary.files > 0 || project.summary.lines > 0) && (
+              <p className="text-[10px] text-stone-600 mt-1">
+                {project.summary.files > 0 && `${project.summary.files} files`}
+                {project.summary.files > 0 && project.summary.lines > 0 && ' / '}
+                {project.summary.lines > 0 && `~${project.summary.lines.toLocaleString()} lines`}
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-stone-600 mb-2 italic">No summary yet</p>
+        )}
+      </button>
+
+      {/* Refresh summary button */}
+      <button
+        onClick={handleSummarize}
+        disabled={summarizing}
+        className="absolute top-3 right-12 p-1 text-stone-600 hover:text-ember-400 transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-50"
+        title="Refresh summary"
+      >
+        <svg className={`w-3.5 h-3.5 ${summarizing ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M21 2v6h-6" />
+          <path d="M3 12a9 9 0 0115-6.7L21 8" />
+          <path d="M3 22v-6h6" />
+          <path d="M21 12a9 9 0 01-15 6.7L3 16" />
+        </svg>
       </button>
 
       {/* Quick-change shortcut */}
-      <div className="mt-3 border-t border-coal-50 pt-3">
+      <div className="mt-2 border-t border-coal-50 pt-2">
         {!showInput ? (
           <button
             onClick={(e) => { e.stopPropagation(); setShowInput(true); }}

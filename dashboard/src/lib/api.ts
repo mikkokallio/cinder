@@ -15,6 +15,13 @@ async function apiFetch(path: string, token: string, options: RequestInit = {}) 
   return res.json();
 }
 
+export interface ProjectSummary {
+  summary: string;
+  tech: string[];
+  files: number;
+  lines: number;
+}
+
 export interface Project {
   id: string;
   name: string;
@@ -25,6 +32,7 @@ export interface Project {
   icon: string;
   running: boolean;
   port: number | null;
+  summary?: ProjectSummary;
 }
 
 export interface PortEntry {
@@ -55,6 +63,8 @@ export const api = {
       apiFetch('/projects', token, { method: 'POST', body: JSON.stringify(data) }),
     delete: (token: string, id: string) =>
       apiFetch(`/projects/${id}`, token, { method: 'DELETE' }),
+    summarize: (token: string, id: string) =>
+      apiFetch(`/projects/${id}/summarize`, token, { method: 'POST' }) as Promise<ProjectSummary>,
   },
   files: {
     list: (token: string, projectId: string, path = '.') =>
