@@ -3,21 +3,25 @@ module.exports = {
     {
       name: 'cinder-api',
       cwd: '/opt/cinder/backend',
-      script: 'uvicorn',
+      script: '/opt/cinder/.venv/bin/uvicorn',
       args: 'main:app --host 127.0.0.1 --port 8000 --workers 2',
-      interpreter: '/opt/cinder/.venv/bin/python',
+      interpreter: 'none',
       env: {
         PYTHONPATH: '/opt/cinder/backend',
+        VIRTUAL_ENV: '/opt/cinder/.venv',
+        PATH: '/opt/cinder/.venv/bin:/usr/local/bin:/usr/bin:/bin',
       },
     },
     {
       name: 'cinder-terminal',
       cwd: '/opt/cinder/backend',
-      script: 'uvicorn',
+      script: '/opt/cinder/.venv/bin/uvicorn',
       args: 'terminal_service:app --host 127.0.0.1 --port 8002 --workers 1',
-      interpreter: '/opt/cinder/.venv/bin/python',
+      interpreter: 'none',
       env: {
         PYTHONPATH: '/opt/cinder/backend',
+        VIRTUAL_ENV: '/opt/cinder/.venv',
+        PATH: '/opt/cinder/.venv/bin:/usr/local/bin:/usr/bin:/bin',
       },
     },
     {
