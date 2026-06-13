@@ -17,7 +17,8 @@
     }
 
     # Terminal sessions API (on terminal service, port 8002)
-    handle /api/sessions* {
+    @terminal_sessions path /api/sessions /api/sessions/*
+    handle @terminal_sessions {
         reverse_proxy 127.0.0.1:8002
     }
 
@@ -60,17 +61,16 @@
         }
     }
 
+    # Root redirect (exact match only)
+    @root_exact path_regexp ^/$
+    redir @root_exact /dashboard/ permanent
+
     # Dashboard (static built assets)
     handle /dashboard {
         redir /dashboard/ permanent
     }
     handle_path /dashboard/* {
         reverse_proxy 127.0.0.1:3000
-    }
-
-    # Root redirect
-    handle / {
-        redir /dashboard/ permanent
     }
 
     # Fallback
