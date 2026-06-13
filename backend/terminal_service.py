@@ -75,7 +75,7 @@ class PtySession:
             self._closed = True
             return False
 
-    def spawn(self, cols: int = 120, rows: int = 30, cwd: str = '/opt/cinder'):
+    def spawn(self, cols: int = 120, rows: int = 30, cwd: str = '/opt/cinder', shell_args: list[str] | None = None):
         pid, fd = pty.fork()
         if pid == 0:
             os.chdir(cwd)
@@ -91,7 +91,8 @@ class PtySession:
                 env['COPILOT_GITHUB_TOKEN'] = copilot_token
                 env['GITHUB_TOKEN'] = copilot_token
                 env['GH_TOKEN'] = copilot_token
-            os.execve(self.shell, [self.shell], env)
+            argv = [self.shell] + (shell_args or [])
+            os.execve(self.shell, argv, env)
         else:
             self.master_fd = fd
             self.pid = pid
@@ -340,10 +341,62 @@ async def health(request):
     return JSONResponse({'status': 'ok', 'service': 'cinder-terminal', 'active_sessions': len(_sessions)})
 
 
+async def start_auto_session(request):
+    """Start an autonomous Copilot CLI session for a project."""
+    auth = request.headers.get('authorization', '')
+    if not auth.startswith('Bearer '):
+        return JSONResponse({'error': 'Unauthorized'}, status_code=401)
+    try:
+        claims = _verify_ws_token(auth[7:])
+    except Exception:
+        return JSONResponse({'error': 'Unauthorized'}, status_code=401)
+
+    user_id = claims.get('oid', claims.get('sub', 'unknown'))
+
+    try:
+        body = await request.json()
+    except Exception:
+        return JSONResponse({'error': 'Invalid JSON body'}, status_code=400)
+
+    prompt = body.get('prompt', '').strip()
+    project_path = body.get('path', '').strip()
+    session_name = body.get('session_name', '').strip()
+
+    if not prompt:
+        return JSONResponse({'error': 'prompt is required'}, status_code=400)
+    if not project_path:
+        return JSONResponse({'error': 'path is required'}, status_code=400)
+    if not session_name:
+        session_name = f'auto-{int(time.time())}'
+
+    import shutil
+    copilot_bin = shutil.which('copilot') or '/usr/bin/copilot'
+    if not os.path.exists(copilot_bin):
+        return JSONResponse({'error': 'copilot binary not found'}, status_code=500)
+
+    session_key = f'{user_id}:{session_name}'
+
+    # Kill existing session with same name if any
+    existing = _sessions.get(session_key)
+    if existing:
+        existing.close()
+        _sessions.pop(session_key, None)
+
+    session = PtySession(owner=user_id, name=session_name, shell=copilot_bin)
+    shell_args = ['-p', prompt, '--allow-all-tools', '--mode', 'autopilot', '--no-ask-user']
+    session.spawn(cols=120, rows=30, cwd=project_path, shell_args=shell_args)
+    _sessions[session_key] = session
+    await session.start_reader()
+
+    logger.info(f'Autonomous session started: {session_key}, cwd={project_path}')
+    return JSONResponse({'session_name': session_name, 'status': 'running'})
+
+
 app = Starlette(
     routes=[
         WebSocketRoute('/ws/terminal/{session_name}', terminal_ws),
         Route('/api/sessions', list_sessions),
+        Route('/api/sessions/auto', start_auto_session, methods=['POST']),
         Route('/api/sessions/{session_name}', terminate_session, methods=['DELETE']),
         Route('/health', health),
     ],

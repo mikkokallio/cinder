@@ -83,5 +83,11 @@ export const api = {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       }).then(r => r.json()),
+    auto: (token: string, data: { prompt: string; path: string; session_name?: string }) =>
+      fetch('/api/sessions/auto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(data),
+      }).then(r => r.json()) as Promise<{ session_name: string; status: string }>,
   },
 };
