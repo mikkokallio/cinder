@@ -20,20 +20,18 @@ export default function Home() {
   }, [token]);
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="relative min-h-screen p-4 md:p-8">
+      {/* Background gradient (same as login) */}
+      <div className="fixed inset-0 bg-gradient-to-br from-coal-500 via-coal-300 to-coal-500 -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,107,53,0.06)_0%,_transparent_60%)] -z-10" />
+
       {/* Header */}
       <header className="flex items-center justify-between mb-8">
         <div className="flex items-center gap-3">
-          <svg className="w-8 h-8 text-ember-500" viewBox="0 0 32 32" fill="none">
-            <path
-              d="M16 2C10 2 6 8 6 16s4 14 10 14 10-6 10-14S22 2 16 2z"
-              fill="currentColor"
-              opacity="0.3"
-            />
-            <path
-              d="M16 6c-3 0-6 3-6 9s1.5 10 6 13c4.5-3 6-7 6-13s-3-9-6-9z"
-              fill="currentColor"
-            />
+          <svg className="w-8 h-8 text-ember-500 drop-shadow-[0_0_6px_rgba(255,107,53,0.4)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+            <path d="M12 2.5c-1.8 3.4-5 6-5 9.5a5 5 0 0 0 10 0c0-3.5-3.2-6.1-5-9.5z" fill="currentColor" opacity="0.25" stroke="none" />
+            <path d="M12 2.5c-1.8 3.4-5 6-5 9.5a5 5 0 0 0 10 0c0-3.5-3.2-6.1-5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M12 8c-1 1.8-2.2 3-2.2 4.8a2.2 2.2 0 0 0 4.4 0c0-1.8-1.2-3-2.2-4.8z" fill="currentColor" opacity="0.5" stroke="none" />
           </svg>
           <h1 className="text-xl font-semibold">Cinder</h1>
         </div>

@@ -53,9 +53,10 @@ function ProtectedRoutes() {
           {/* Cinder flame icon */}
           <div className="relative">
             <div className="absolute inset-0 blur-xl bg-ember-500/20 rounded-full scale-150" />
-            <svg className="relative w-16 h-16 text-ember-500 drop-shadow-[0_0_12px_rgba(255,107,53,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-              <path d="M12 2c0 4-3 6-3 10a5 5 0 0 0 10 0c0-4-4-6-4-8 0 0-1 2-3 2s-2-2 0-4z" fill="currentColor" opacity="0.3" stroke="none" />
-              <path d="M12 2c0 4-3 6-3 10a5 5 0 0 0 10 0c0-4-4-6-4-8 0 0-1 2-3 2s-2-2 0-4z" strokeLinecap="round" strokeLinejoin="round" />
+            <svg className="relative w-16 h-16 text-ember-500 drop-shadow-[0_0_12px_rgba(255,107,53,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+              <path d="M12 2.5c-1.8 3.4-5 6-5 9.5a5 5 0 0 0 10 0c0-3.5-3.2-6.1-5-9.5z" fill="currentColor" opacity="0.25" stroke="none" />
+              <path d="M12 2.5c-1.8 3.4-5 6-5 9.5a5 5 0 0 0 10 0c0-3.5-3.2-6.1-5-9.5z" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M12 8c-1 1.8-2.2 3-2.2 4.8a2.2 2.2 0 0 0 4.4 0c0-1.8-1.2-3-2.2-4.8z" fill="currentColor" opacity="0.5" stroke="none" />
             </svg>
           </div>
 

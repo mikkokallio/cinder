@@ -93,9 +93,13 @@ export default function ProjectView() {
   ];
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="relative flex flex-col h-screen">
+      {/* Background gradient */}
+      <div className="fixed inset-0 bg-gradient-to-br from-coal-500 via-coal-300 to-coal-500 -z-10" />
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(255,107,53,0.06)_0%,_transparent_60%)] -z-10" />
+
       {/* Top bar */}
-      <header className="flex items-center gap-4 px-4 py-3 border-b border-coal-50">
+      <header className="flex items-center gap-4 px-4 py-3 border-b border-coal-50 backdrop-blur-sm bg-coal-300/40">
         <button
           onClick={() => navigate('/')}
           className="text-stone-400 hover:text-stone-200 transition-colors"
