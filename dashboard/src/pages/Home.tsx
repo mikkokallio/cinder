@@ -5,12 +5,14 @@ import { useNavigate } from 'react-router-dom';
 import ProjectCard from '../components/ProjectCard';
 import SessionDrawer from '../components/SessionDrawer';
 import PortRegistry from '../components/PortRegistry';
+import NewProjectDialog from '../components/NewProjectDialog';
 
 export default function Home() {
   const { token, user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [portsOpen, setPortsOpen] = useState(false);
+  const [newProjectOpen, setNewProjectOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -72,10 +74,22 @@ export default function Home() {
 
       {/* Project Grid */}
       <section>
-        <h2 className="text-lg font-medium text-stone-300 mb-4">Projects</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-medium text-stone-300">Projects</h2>
+          <button
+            onClick={() => setNewProjectOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-ember-400 border border-ember-500/30 rounded-lg hover:bg-ember-500/10 transition-colors"
+          >
+            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            New
+          </button>
+        </div>
         {projects.length === 0 ? (
           <div className="glass-panel p-8 text-center text-stone-400">
-            No projects registered yet.
+            No projects yet. Create one to get started.
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -97,6 +111,13 @@ export default function Home() {
         onSelectSession={(name) => navigate(`/project/${name}`)}
       />
       <PortRegistry open={portsOpen} onClose={() => setPortsOpen(false)} />
+      <NewProjectDialog
+        open={newProjectOpen}
+        onClose={() => setNewProjectOpen(false)}
+        onCreated={() => {
+          if (token) api.projects.list(token).then(setProjects);
+        }}
+      />
     </div>
   );
 }

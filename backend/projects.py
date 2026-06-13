@@ -86,6 +86,8 @@ async def register_project(project: ProjectCreate, user=Depends(get_current_user
     if project.repo and not project_path.exists():
         project_path.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(['git', 'clone', project.repo, str(project_path)], check=True)
+    elif not project_path.exists():
+        project_path.mkdir(parents=True, exist_ok=True)
 
     return entry
 
