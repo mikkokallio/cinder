@@ -1,0 +1,72 @@
+{$CINDER_DOMAIN:localhost} {
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 10mb
+            roll_keep 3
+        }
+        format json
+    }
+
+    # API routes
+    handle /api/* {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # Health check (no auth)
+    handle /health {
+        reverse_proxy 127.0.0.1:8000
+    }
+
+    # Terminal WebSocket (standalone service on 8002)
+    handle /ws/terminal/* {
+        reverse_proxy 127.0.0.1:8002
+    }
+
+    # App proxy - routes to dynamically allocated dev server ports
+    # Auth gated via forward_auth
+    handle /app/* {
+        @websocket {
+            header Connection *Upgrade*
+            header Upgrade websocket
+        }
+        # WebSocket upgrades bypass forward_auth (HMR)
+        handle @websocket {
+            reverse_proxy 127.0.0.1:8000 {
+                # API resolves target port and proxies
+            }
+        }
+        handle {
+            forward_auth 127.0.0.1:8000 {
+                uri /api/auth/check
+                copy_headers {
+                    Cookie
+                }
+            }
+            reverse_proxy 127.0.0.1:8000
+        }
+    }
+
+    # Dashboard (Vite serves built assets or dev mode)
+    handle /dashboard/* {
+        reverse_proxy 127.0.0.1:3000
+    }
+
+    # Root redirect
+    handle / {
+        redir /dashboard/ permanent
+    }
+
+    # Fallback
+    handle {
+        reverse_proxy 127.0.0.1:8000
+    }
+}

@@ -1,0 +1,39 @@
+name: Deploy Cinder
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '*.md'
+      - 'infra/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy to VM
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.VM_HOST }}
+          username: cinder
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            set -e
+            cd /opt/cinder
+            git pull origin main
+
+            # Backend
+            source .venv/bin/activate
+            pip install -r backend/requirements.txt --quiet
+
+            # Frontend
+            cd dashboard
+            npm ci --silent
+            npm run build
+
+            # Restart services
+            cd /opt/cinder
+            pm2 restart ecosystem.config.js --update-env
+            echo "Deploy complete: $(date)"

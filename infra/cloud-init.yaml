@@ -1,0 +1,75 @@
+#cloud-config
+
+package_update: true
+package_upgrade: true
+
+packages:
+  - curl
+  - git
+  - build-essential
+  - python3
+  - python3-pip
+  - python3-venv
+  - fail2ban
+  - ufw
+  - jq
+
+write_files:
+  - path: /etc/fail2ban/jail.local
+    content: |
+      [sshd]
+      enabled = true
+      port = ssh
+      filter = sshd
+      logpath = /var/log/auth.log
+      maxretry = 3
+      bantime = 3600
+
+  - path: /opt/cinder/.env.template
+    content: |
+      ENTRA_TENANT_ID=
+      ENTRA_CLIENT_ID=
+      CINDER_DOMAIN=
+      CINDER_ROOT=/opt/cinder
+      GITHUB_TOKEN=
+
+runcmd:
+  # Node.js 20 LTS
+  - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  - apt-get install -y nodejs
+
+  # PM2
+  - npm install -g pm2
+
+  # Caddy
+  - apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
+  - curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
+  - apt-get update
+  - apt-get install -y caddy
+
+  # Python venv for backend
+  - python3 -m venv /opt/cinder/.venv
+  - /opt/cinder/.venv/bin/pip install --upgrade pip
+
+  # GitHub Copilot CLI
+  - npm install -g @githubnext/github-copilot-cli || true
+
+  # Firewall (UFW as secondary layer behind NSG)
+  - ufw default deny incoming
+  - ufw default allow outgoing
+  - ufw allow 22/tcp
+  - ufw allow 80/tcp
+  - ufw allow 443/tcp
+  - ufw --force enable
+
+  # Start fail2ban
+  - systemctl enable fail2ban
+  - systemctl start fail2ban
+
+  # Create project directory
+  - mkdir -p /opt/cinder/projects
+  - chown -R cinder:cinder /opt/cinder
+
+  # Log completion
+  - echo "Cinder cloud-init complete at $(date)" >> /var/log/cinder-init.log
