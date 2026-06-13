@@ -55,8 +55,11 @@
         }
     }
 
-    # Dashboard (Vite serves built assets or dev mode)
-    handle /dashboard/* {
+    # Dashboard (static built assets)
+    handle /dashboard {
+        redir /dashboard/ permanent
+    }
+    handle_path /dashboard/* {
         reverse_proxy 127.0.0.1:3000
     }
 
