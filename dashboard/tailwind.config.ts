@@ -28,7 +28,7 @@ export default {
       },
       animation: {
         'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-        'ember-float': 'ember-float 3s ease-out forwards',
+        'ember-float': 'ember-float 3s ease-out infinite',
       },
       keyframes: {
         'glow-pulse': {
@@ -36,8 +36,9 @@ export default {
           '50%': { opacity: '1' },
         },
         'ember-float': {
-          '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
-          '100%': { transform: 'translateY(-100px) scale(0)', opacity: '0' },
+          '0%': { transform: 'translateY(0) scale(1)', opacity: '0' },
+          '10%': { opacity: '0.8' },
+          '100%': { transform: 'translateY(-120px) scale(0.3)', opacity: '0' },
         },
       },
       boxShadow: {
