@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 
 # Active dev server processes keyed by project_id
 _processes: dict[str, asyncio.subprocess.Process] = {}
-_cwd: dict[str, str] = {}  # Track working dir for cleanup
 
 
 async def start_dev_server(
@@ -49,15 +48,7 @@ async def start_dev_server(
         vite_config = Path(cwd) / 'vite.config.ts'
         vite_config_js = Path(cwd) / 'vite.config.js'
         if vite_config.exists() or vite_config_js.exists():
-            config_name = 'vite.config.ts' if vite_config.exists() else 'vite.config.js'
-            # Write a wrapper config that disables HMR (avoids WS errors in iframe preview)
-            wrapper = Path(cwd) / '.cinder-preview.config.mjs'
-            wrapper.write_text(
-                f'import config from "./{config_name}";\n'
-                'const c = typeof config === "function" ? await config({mode:"development",command:"serve"}) : config;\n'
-                'export default { ...c, server: { ...(c.server||{}), hmr: false } };\n'
-            )
-            cmd = f'npx vite --config .cinder-preview.config.mjs --port {port} --host 127.0.0.1 --base /app/{project_id}/'
+            cmd = f'npx vite --port {port} --host 127.0.0.1 --base /app/{project_id}/'
 
     # Kill any orphaned process on the target port (e.g. from a previous API restart)
     try:
@@ -84,7 +75,6 @@ async def start_dev_server(
         stderr=asyncio.subprocess.STDOUT,
     )
     _processes[project_id] = proc
-    _cwd[project_id] = cwd
     logger.info(f'Dev server started for {project_id}: pid={proc.pid}, port={port}, cmd="{cmd}", cwd={cwd}')
 
     # Background log drain (prevents buffer overflow)
@@ -96,7 +86,6 @@ async def start_dev_server(
 async def stop_dev_server(project_id: str) -> bool:
     """Stop a running dev server. Returns True if it was running."""
     proc = _processes.pop(project_id, None)
-    cwd = _cwd.pop(project_id, None)
     if proc is None or proc.returncode is not None:
         return False
 
@@ -109,11 +98,6 @@ async def stop_dev_server(project_id: str) -> bool:
             await proc.wait()
     except ProcessLookupError:
         pass
-
-    # Clean up wrapper config
-    if cwd:
-        wrapper = Path(cwd) / '.cinder-preview.config.mjs'
-        wrapper.unlink(missing_ok=True)
 
     logger.info(f'Dev server stopped for {project_id}')
     return True
