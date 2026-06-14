@@ -55,6 +55,26 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
+
+# Starlette 1.3 CORSMiddleware rejects WebSocket when Origin is missing/mismatched.
+# Inject the allowed origin so WebSocket upgrades pass through. Auth is at Caddy layer.
+from starlette.types import ASGIApp, Receive, Scope, Send
+
+
+class _WebSocketOriginFix:
+    def __init__(self, app: ASGIApp):
+        self.app = app
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send):
+        if scope['type'] == 'websocket':
+            headers = [(k, v) for k, v in scope.get('headers', []) if k != b'origin']
+            headers.append((b'origin', _origin.encode()))
+            scope = dict(scope, headers=headers)
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(_WebSocketOriginFix)
+
 app.include_router(projects_router, prefix='/api/projects', tags=['projects'])
 app.include_router(files_router, prefix='/api/projects', tags=['files'])
 
