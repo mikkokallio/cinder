@@ -9,7 +9,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
-from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from auth import get_current_user, verify_session_cookie, verify_bearer_token, create_session, SESSION_COOKIE_NAME
@@ -47,33 +46,56 @@ app = FastAPI(title='Cinder API', lifespan=lifespan)
 _domain = os.getenv('CINDER_DOMAIN', 'localhost')
 _origin = os.getenv('CINDER_ORIGIN', f'https://{_domain}')
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[_origin],
-    allow_credentials=True,
-    allow_methods=['*'],
-    allow_headers=['*'],
-)
 
-
-# Starlette 1.3 CORSMiddleware rejects WebSocket when Origin is missing/mismatched.
-# Inject the allowed origin so WebSocket upgrades pass through. Auth is at Caddy layer.
+# Manual CORS handling - Starlette's CORSMiddleware rejects WebSocket in v1.3.
 from starlette.types import ASGIApp, Receive, Scope, Send
 
 
-class _WebSocketOriginFix:
+class _CORSMiddleware:
+    """CORS middleware that only applies to HTTP, not WebSocket."""
+
     def __init__(self, app: ASGIApp):
         self.app = app
 
     async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        if scope['type'] == 'websocket':
-            headers = [(k, v) for k, v in scope.get('headers', []) if k != b'origin']
-            headers.append((b'origin', _origin.encode()))
-            scope = dict(scope, headers=headers)
-        await self.app(scope, receive, send)
+        if scope['type'] != 'http':
+            await self.app(scope, receive, send)
+            return
+
+        # Preflight
+        headers_raw = dict(scope.get('headers', []))
+        origin = headers_raw.get(b'origin', b'').decode()
+        method = scope.get('method', 'GET')
+
+        if method == 'OPTIONS' and origin:
+            from starlette.responses import Response as StarletteResp
+            resp = StarletteResp(
+                status_code=200,
+                headers={
+                    'access-control-allow-origin': _origin,
+                    'access-control-allow-credentials': 'true',
+                    'access-control-allow-methods': 'GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS',
+                    'access-control-allow-headers': 'authorization, content-type, x-requested-with',
+                    'access-control-max-age': '86400',
+                },
+            )
+            await resp(scope, receive, send)
+            return
+
+        # Normal request - inject CORS headers into response
+        async def send_with_cors(message):
+            if message['type'] == 'http.response.start':
+                headers = list(message.get('headers', []))
+                if origin == _origin or not origin:
+                    headers.append((b'access-control-allow-origin', _origin.encode()))
+                    headers.append((b'access-control-allow-credentials', b'true'))
+                message = {**message, 'headers': headers}
+            await send(message)
+
+        await self.app(scope, receive, send_with_cors)
 
 
-app.add_middleware(_WebSocketOriginFix)
+app.add_middleware(_CORSMiddleware)
 
 app.include_router(projects_router, prefix='/api/projects', tags=['projects'])
 app.include_router(files_router, prefix='/api/projects', tags=['files'])
