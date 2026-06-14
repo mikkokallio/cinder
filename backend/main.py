@@ -163,8 +163,8 @@ async def proxy_app(project_id: str, path: str, request: Request):
     if port is None or not is_running(project_id):
         raise HTTPException(status_code=502, detail=f'Dev server not running for {project_id}')
 
-    # Strip /app/{project_id}/ prefix and forward remainder to dev server
-    target_url = f'http://127.0.0.1:{port}/{path}'
+    # Forward full path including /app/{project_id}/ prefix (Vite uses it as base)
+    target_url = f'http://127.0.0.1:{port}/app/{project_id}/{path}'
     if request.url.query:
         target_url += f'?{request.url.query}'
 
