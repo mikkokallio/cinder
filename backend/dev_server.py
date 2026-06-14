@@ -32,18 +32,35 @@ async def start_dev_server(
 
     env = {**os.environ, 'PORT': str(port)}
 
+    # Auto-detect working directory: prefer frontend/ subfolder if it has package.json
+    cwd = project_path
+    root_pkg = Path(project_path) / 'package.json'
+    frontend_pkg = Path(project_path) / 'frontend' / 'package.json'
+    if not root_pkg.exists() and frontend_pkg.exists():
+        cwd = str(Path(project_path) / 'frontend')
+        logger.info(f'Using frontend/ subfolder for {project_id}')
+
+    # For vite projects, inject --port flag
+    cmd = dev_command
+    if 'vite' in cmd or cmd == 'npm run dev':
+        # Check if vite.config exists in cwd to confirm it's a vite project
+        vite_config = Path(cwd) / 'vite.config.ts'
+        vite_config_js = Path(cwd) / 'vite.config.js'
+        if vite_config.exists() or vite_config_js.exists():
+            cmd = f'npx vite --port {port} --host 127.0.0.1'
+
     # Parse command
-    parts = dev_command.split()
+    parts = cmd.split()
 
     proc = await asyncio.create_subprocess_exec(
         *parts,
-        cwd=project_path,
+        cwd=cwd,
         env=env,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
     _processes[project_id] = proc
-    logger.info(f'Dev server started for {project_id}: pid={proc.pid}, port={port}, cmd="{dev_command}"')
+    logger.info(f'Dev server started for {project_id}: pid={proc.pid}, port={port}, cmd="{cmd}", cwd={cwd}')
 
     # Background log drain (prevents buffer overflow)
     asyncio.create_task(_drain_output(project_id, proc))

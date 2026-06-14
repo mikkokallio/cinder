@@ -38,27 +38,8 @@
     }
 
     # App proxy - routes to dynamically allocated dev server ports
-    # Auth gated via forward_auth
     handle /app/* {
-        @websocket {
-            header Connection *Upgrade*
-            header Upgrade websocket
-        }
-        # WebSocket upgrades bypass forward_auth (HMR)
-        handle @websocket {
-            reverse_proxy 127.0.0.1:8000 {
-                # API resolves target port and proxies
-            }
-        }
-        handle {
-            forward_auth 127.0.0.1:8000 {
-                uri /api/auth/check
-                copy_headers {
-                    Cookie
-                }
-            }
-            reverse_proxy 127.0.0.1:8000
-        }
+        reverse_proxy 127.0.0.1:8000
     }
 
     # Root redirect (exact match only)
