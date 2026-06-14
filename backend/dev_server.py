@@ -103,13 +103,18 @@ def get_pid(project_id: str) -> Optional[int]:
 
 
 async def _drain_output(project_id: str, proc: asyncio.subprocess.Process):
-    """Drain stdout to prevent buffer deadlock. Could be extended to log files."""
+    """Drain stdout to prevent buffer deadlock. Logs output on exit."""
+    lines = []
     try:
         while True:
             line = await proc.stdout.readline()
             if not line:
                 break
+            lines.append(line.decode(errors='replace').rstrip())
     except Exception:
         pass
     finally:
+        rc = proc.returncode
+        if rc is not None and rc != 0:
+            logger.warning(f'Dev server {project_id} exited with code {rc}. Last output: {lines[-10:] if lines else "none"}')
         _processes.pop(project_id, None)
