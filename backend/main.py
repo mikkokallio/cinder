@@ -55,32 +55,6 @@ app.add_middleware(
     allow_headers=['*'],
 )
 
-
-# Starlette CORSMiddleware rejects WebSocket upgrades in some versions.
-# Auth is handled at the Caddy layer, so we bypass CORS for WebSocket here.
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.types import ASGIApp, Receive, Scope, Send
-
-
-class WebSocketCORSBypass:
-    """Skip CORSMiddleware rejection for WebSocket connections."""
-
-    def __init__(self, app: ASGIApp):
-        self.app = app
-
-    async def __call__(self, scope: Scope, receive: Receive, send: Send):
-        if scope['type'] == 'websocket':
-            # Remove origin header so CORSMiddleware doesn't reject it
-            headers = dict(scope.get('headers', []))
-            scope['headers'] = [
-                (k, v) for k, v in scope.get('headers', [])
-                if k.lower() != b'origin'
-            ]
-        await self.app(scope, receive, send)
-
-
-app.add_middleware(WebSocketCORSBypass)
-
 app.include_router(projects_router, prefix='/api/projects', tags=['projects'])
 app.include_router(files_router, prefix='/api/projects', tags=['files'])
 
