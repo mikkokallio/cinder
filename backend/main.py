@@ -196,6 +196,14 @@ async def project_status(project_id: str, user=Depends(get_current_user)):
 
 # --- Dev server proxy ---
 
+@app.websocket('/ws/echo')
+async def ws_echo(websocket):
+    """Minimal test WebSocket endpoint."""
+    await websocket.accept()
+    await websocket.send_text('hello')
+    await websocket.close()
+
+
 @app.websocket('/ws/{path:path}')
 async def proxy_bare_websocket(path: str, websocket):
     """Proxy bare /ws/* connections to the running project's backend.
