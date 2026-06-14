@@ -59,6 +59,20 @@ async def start_dev_server(
             )
             cmd = f'npx vite --config .cinder-preview.config.mjs --port {port} --host 127.0.0.1 --base /app/{project_id}/'
 
+    # Kill any orphaned process on the target port (e.g. from a previous API restart)
+    try:
+        kill_proc = await asyncio.create_subprocess_exec(
+            'fuser', '-k', f'{port}/tcp',
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await kill_proc.wait()
+        if kill_proc.returncode == 0:
+            logger.info(f'Killed orphaned process on port {port}')
+            await asyncio.sleep(1)  # Let port release
+    except FileNotFoundError:
+        pass
+
     # Parse command
     parts = cmd.split()
 
