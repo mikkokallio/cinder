@@ -151,6 +151,111 @@ async def project_status(project_id: str, user=Depends(get_current_user)):
 
 # --- Dev server proxy ---
 
+@app.websocket('/ws/{path:path}')
+async def proxy_bare_websocket(path: str, websocket):
+    """Proxy bare /ws/* connections to the running project's backend.
+    Used when iframe apps connect via window.location.host without base path.
+    """
+    import websockets
+
+    # Find the running project with a backend
+    projects = _load_projects()
+    backend_port = None
+    for project in projects:
+        if project.get('backend_port') and is_running(project['id']):
+            backend_port = project['backend_port']
+            break
+
+    if not backend_port:
+        await websocket.close(code=1002)
+        return
+
+    await websocket.accept()
+    target_url = f'ws://127.0.0.1:{backend_port}/ws/{path}'
+
+    try:
+        async with websockets.connect(target_url) as backend_ws:
+            import asyncio
+
+            async def client_to_backend():
+                try:
+                    while True:
+                        data = await websocket.receive_text()
+                        await backend_ws.send(data)
+                except Exception:
+                    pass
+
+            async def backend_to_client():
+                try:
+                    async for msg in backend_ws:
+                        await websocket.send_text(msg)
+                except Exception:
+                    pass
+
+            done, pending = await asyncio.wait(
+                [asyncio.create_task(client_to_backend()), asyncio.create_task(backend_to_client())],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
+
+@app.websocket('/app/{project_id}/ws/{path:path}')
+async def proxy_app_websocket(project_id: str, path: str, websocket):
+    """Proxy WebSocket connections to a project's backend."""
+    import websockets
+
+    projects = _load_projects()
+    project = next((p for p in projects if p['id'] == project_id), None)
+    backend_port = project.get('backend_port') if project else None
+
+    if not backend_port or not is_running(project_id):
+        await websocket.close(code=1002)
+        return
+
+    await websocket.accept()
+    target_url = f'ws://127.0.0.1:{backend_port}/ws/{path}'
+
+    try:
+        async with websockets.connect(target_url) as backend_ws:
+            import asyncio
+
+            async def client_to_backend():
+                try:
+                    while True:
+                        data = await websocket.receive_text()
+                        await backend_ws.send(data)
+                except Exception:
+                    pass
+
+            async def backend_to_client():
+                try:
+                    async for msg in backend_ws:
+                        await websocket.send_text(msg)
+                except Exception:
+                    pass
+
+            done, pending = await asyncio.wait(
+                [asyncio.create_task(client_to_backend()), asyncio.create_task(backend_to_client())],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
 @app.api_route('/app/{project_id}/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
 async def proxy_app(project_id: str, path: str, request: Request):
     """Reverse-proxy requests to the running dev server for a project."""
