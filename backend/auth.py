@@ -42,12 +42,6 @@ async def verify_bearer_token(authorization: Optional[str] = Header(None)) -> Di
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Missing or invalid Authorization header')
 
     token = authorization[7:]
-
-    # Test bypass for dev validation (non-production)
-    test_secret = os.getenv('CINDER_TEST_SECRET')
-    if test_secret and token == test_secret:
-        return {'sub': 'test-user', 'name': 'Test User'}
-
     _, _, issuers, audiences, _ = _get_config()
 
     try:
