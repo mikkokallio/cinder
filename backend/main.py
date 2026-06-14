@@ -7,7 +7,7 @@ import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Depends, HTTPException, Request, Response
+from fastapi import FastAPI, Depends, HTTPException, Request, Response, WebSocket
 from fastapi.responses import JSONResponse, StreamingResponse
 from dotenv import load_dotenv
 
@@ -197,7 +197,7 @@ async def project_status(project_id: str, user=Depends(get_current_user)):
 # --- Dev server proxy ---
 
 @app.websocket('/ws/echo')
-async def ws_echo(websocket):
+async def ws_echo(websocket: WebSocket):
     """Minimal test WebSocket endpoint."""
     await websocket.accept()
     await websocket.send_text('hello')
@@ -205,7 +205,7 @@ async def ws_echo(websocket):
 
 
 @app.websocket('/ws/{path:path}')
-async def proxy_bare_websocket(path: str, websocket):
+async def proxy_bare_websocket(path: str, websocket: WebSocket):
     """Proxy bare /ws/* connections to the running project's backend.
     Used when iframe apps connect via window.location.host without base path.
     """
@@ -261,7 +261,7 @@ async def proxy_bare_websocket(path: str, websocket):
 
 
 @app.websocket('/app/{project_id}/ws/{path:path}')
-async def proxy_app_websocket(project_id: str, path: str, websocket):
+async def proxy_app_websocket(project_id: str, path: str, websocket: WebSocket):
     """Proxy WebSocket connections to a project's backend."""
     import websockets
 
