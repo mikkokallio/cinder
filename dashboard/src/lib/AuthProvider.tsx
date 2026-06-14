@@ -21,6 +21,7 @@ interface AuthContextType {
   isLoading: boolean;
   user: { name: string; email: string } | null;
   token: string | null;
+  getToken: () => Promise<string | null>;
   login: () => void;
   logout: () => void;
 }
@@ -30,6 +31,7 @@ const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   user: null,
   token: null,
+  getToken: async () => null,
   login: () => {},
   logout: () => {},
 });
@@ -83,8 +85,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     msalInstance.logoutRedirect();
   }, []);
 
+  const getToken = useCallback(async (): Promise<string | null> => {
+    const accounts = msalInstance.getAllAccounts();
+    if (accounts.length === 0) return null;
+    try {
+      const result = await msalInstance.acquireTokenSilent({
+        scopes: loginScopes,
+        account: accounts[0],
+      });
+      return result.idToken;
+    } catch (e) {
+      if (e instanceof InteractionRequiredAuthError) {
+        msalInstance.loginRedirect({ scopes: loginScopes });
+      }
+      return null;
+    }
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, token, login, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated, isLoading, user, token, getToken, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

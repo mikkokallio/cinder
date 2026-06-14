@@ -8,7 +8,7 @@ import PortRegistry from '../components/PortRegistry';
 import NewProjectDialog from '../components/NewProjectDialog';
 
 export default function Home() {
-  const { token, user, logout } = useAuth();
+  const { token, getToken, user, logout } = useAuth();
   const [projects, setProjects] = useState<Project[]>([]);
   const [sessionsOpen, setSessionsOpen] = useState(false);
   const [portsOpen, setPortsOpen] = useState(false);
@@ -17,9 +17,11 @@ export default function Home() {
 
   useEffect(() => {
     if (token) {
-      api.projects.list(token).then(setProjects).catch(console.error);
+      getToken().then((t) => {
+        if (t) api.projects.list(t).then(setProjects).catch(console.error);
+      });
     }
-  }, [token]);
+  }, [token, getToken]);
 
   return (
     <div className="relative min-h-screen p-4 md:p-8">

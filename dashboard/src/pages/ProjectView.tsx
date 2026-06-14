@@ -10,7 +10,7 @@ type ShellType = 'bash' | 'copilot';
 
 export default function ProjectView() {
   const { projectId } = useParams<{ projectId: string }>();
-  const { token } = useAuth();
+  const { token, getToken } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>('terminal');
   const [shellType, setShellType] = useState<ShellType>('bash');
@@ -20,25 +20,30 @@ export default function ProjectView() {
 
   useEffect(() => {
     if (token && projectId) {
-      fetch(`/api/projects/${projectId}/status`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((r) => r.json())
-        .then((data) => {
-          setServerRunning(data.running);
-          setServerPort(data.port);
+      getToken().then((t) => {
+        if (!t) return;
+        fetch(`/api/projects/${projectId}/status`, {
+          headers: { Authorization: `Bearer ${t}` },
         })
-        .catch(() => {});
+          .then((r) => r.json())
+          .then((data) => {
+            setServerRunning(data.running);
+            setServerPort(data.port);
+          })
+          .catch(() => {});
+      });
     }
-  }, [token, projectId]);
+  }, [token, projectId, getToken]);
 
   const handleStartServer = async () => {
-    if (!token || !projectId) return;
+    if (!projectId) return;
+    const t = await getToken();
+    if (!t) return;
     setStarting(true);
     try {
       const res = await fetch(`/api/projects/${projectId}/start`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${t}` },
       });
       const data = await res.json();
       if (data.port) {
@@ -62,10 +67,12 @@ export default function ProjectView() {
   };
 
   const handleStopServer = async () => {
-    if (!token || !projectId) return;
+    if (!projectId) return;
+    const t = await getToken();
+    if (!t) return;
     await fetch(`/api/projects/${projectId}/stop`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${t}` },
     });
     setServerRunning(false);
     setServerPort(null);
