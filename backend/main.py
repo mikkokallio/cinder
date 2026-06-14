@@ -44,9 +44,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title='Cinder API', lifespan=lifespan)
 
+_domain = os.getenv('CINDER_DOMAIN', 'localhost')
+_origin = os.getenv('CINDER_ORIGIN', f'https://{_domain}')
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[os.getenv('CINDER_ORIGIN', 'https://localhost')],
+    allow_origins=[_origin],
     allow_credentials=True,
     allow_methods=['*'],
     allow_headers=['*'],
@@ -288,6 +291,48 @@ async def proxy_app(project_id: str, path: str, request: Request):
             )
         except httpx.ConnectError:
             raise HTTPException(status_code=502, detail='Dev server not responding')
+
+    return Response(
+        content=resp.content,
+        status_code=resp.status_code,
+        headers={k: v for k, v in resp.headers.items() if k.lower() not in ('transfer-encoding', 'connection')},
+    )
+
+
+# --- Catch-all: proxy unmatched /api/* to running app backend ---
+
+@app.api_route('/api/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
+async def proxy_api_to_app_backend(path: str, request: Request):
+    """Forward unmatched /api/* requests to the running project's backend."""
+    import httpx
+
+    projects = _load_projects()
+    backend_port = None
+    for project in projects:
+        if project.get('backend_port') and is_running(project['id']):
+            backend_port = project['backend_port']
+            break
+
+    if not backend_port:
+        raise HTTPException(status_code=404, detail='Not found')
+
+    target_url = f'http://127.0.0.1:{backend_port}/api/{path}'
+    if request.url.query:
+        target_url += f'?{request.url.query}'
+
+    body = await request.body()
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ('host', 'connection')}
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        try:
+            resp = await client.request(
+                method=request.method,
+                url=target_url,
+                headers=headers,
+                content=body,
+            )
+        except httpx.ConnectError:
+            raise HTTPException(status_code=502, detail='App backend not responding')
 
     return Response(
         content=resp.content,
