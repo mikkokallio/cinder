@@ -119,6 +119,8 @@ async def start_project_server(project_id: str, user=Depends(get_current_user)):
         project_path=project['path'],
         dev_command=project.get('dev_command', 'npm run dev'),
         port=port,
+        backend_command=project.get('backend_command'),
+        backend_port=project.get('backend_port'),
     )
     return {'status': 'started', 'port': port, 'pid': pid}
 
