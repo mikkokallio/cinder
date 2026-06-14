@@ -161,11 +161,11 @@ async def proxy_bare_websocket(path: str, websocket):
     """
     import websockets
 
-    # Find the running project with a backend
+    # Find a project with a backend_port configured
     projects = _load_projects()
     backend_port = None
     for project in projects:
-        if project.get('backend_port') and is_running(project['id']):
+        if project.get('backend_port'):
             backend_port = project['backend_port']
             break
 
@@ -309,7 +309,7 @@ async def proxy_api_to_app_backend(path: str, request: Request):
     projects = _load_projects()
     backend_port = None
     for project in projects:
-        if project.get('backend_port') and is_running(project['id']):
+        if project.get('backend_port'):
             backend_port = project['backend_port']
             break
 
