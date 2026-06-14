@@ -40,14 +40,14 @@ async def start_dev_server(
         cwd = str(Path(project_path) / 'frontend')
         logger.info(f'Using frontend/ subfolder for {project_id}')
 
-    # For vite projects, inject --port flag
+    # For vite projects, inject --port flag and correct base path
     cmd = dev_command
     if 'vite' in cmd or cmd == 'npm run dev':
         # Check if vite.config exists in cwd to confirm it's a vite project
         vite_config = Path(cwd) / 'vite.config.ts'
         vite_config_js = Path(cwd) / 'vite.config.js'
         if vite_config.exists() or vite_config_js.exists():
-            cmd = f'npx vite --port {port} --host 127.0.0.1'
+            cmd = f'npx vite --port {port} --host 127.0.0.1 --base /app/{project_id}/'
 
     # Parse command
     parts = cmd.split()
