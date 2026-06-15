@@ -261,7 +261,7 @@ async def proxy_app_websocket(project_id: str, path: str, websocket: WebSocket):
     project = next((p for p in projects if p['id'] == project_id), None)
     backend_port = project.get('backend_port') if project else None
 
-    if not backend_port or not is_running(project_id):
+    if not backend_port:
         await websocket.close(code=1002)
         return
 
@@ -300,6 +300,58 @@ async def proxy_app_websocket(project_id: str, path: str, websocket: WebSocket):
             await websocket.close()
         except Exception:
             pass
+
+@app.websocket('/app/{project_id}/{path:path}')
+async def proxy_app_vite_ws(project_id: str, path: str, websocket: WebSocket):
+    """Proxy Vite HMR WebSocket (and other dev WS) to the dev server."""
+    import websockets
+
+    port = None
+    for entry in port_master.get_registry():
+        if entry['project_id'] == project_id:
+            port = entry['port']
+            break
+
+    if port is None:
+        await websocket.close(code=1002)
+        return
+
+    await websocket.accept()
+    target_url = f'ws://127.0.0.1:{port}/app/{project_id}/{path}'
+
+    try:
+        async with websockets.connect(target_url) as backend_ws:
+            import asyncio
+
+            async def client_to_backend():
+                try:
+                    while True:
+                        data = await websocket.receive_text()
+                        await backend_ws.send(data)
+                except Exception:
+                    pass
+
+            async def backend_to_client():
+                try:
+                    async for msg in backend_ws:
+                        await websocket.send_text(msg)
+                except Exception:
+                    pass
+
+            done, pending = await asyncio.wait(
+                [asyncio.create_task(client_to_backend()), asyncio.create_task(backend_to_client())],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+            for task in pending:
+                task.cancel()
+    except Exception:
+        pass
+    finally:
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+
 
 @app.api_route('/app/{project_id}/{path:path}', methods=['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'HEAD', 'OPTIONS'])
 async def proxy_app(project_id: str, path: str, request: Request):
